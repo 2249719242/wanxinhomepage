@@ -1,0 +1,9 @@
+requests
+httpx
+wave
+pydub
+audio_separator
+asyncio
+flask
+flask_cors
+base64

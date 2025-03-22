@@ -1,8 +1,8 @@
 // utils/weather.ts
 import axios from 'axios';
-import { deflate } from 'zlib';
+import { MAPURL } from '../../constant/Constant'
 
-const AMAP_KEY = 'c0bdd96f4ed61b512e0b1dd4eee684e3'; // 替换为实际Key
+const AMAP_KEY = MAPURL; // 替换为实际Key
 
 export interface WeatherData {
   city: string

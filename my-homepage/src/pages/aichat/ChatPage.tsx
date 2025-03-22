@@ -3,6 +3,7 @@ import { Input, Button, List, Upload, message, Spin, Avatar } from 'antd';
 import { SendOutlined, UploadOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import './ChatPage.css';
+import {BASEURL} from '../../constant/Constant'
 
 const { TextArea } = Input;
 
@@ -18,7 +19,7 @@ const ChatPage: React.FC = () => {
   const [inputText, setInputText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const backendUrl = 'https://marmoset-frank-quickly.ngrok-free.app/';
+  const backendUrl = BASEURL;
 
   // 发送文本消息
   const sendTextMessage = async () => {
