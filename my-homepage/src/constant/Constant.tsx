@@ -33,5 +33,5 @@ export const socialIcons = [
 ];
 
 
-export const BASEURL = 'https://marmoset-frank-quickly.ngrok-free.app/'
+export const BASEURL = 'http://localhost:5000/'
 export const MAPURL = 'c0bdd96f4ed61b512e0b1dd4eee684e3'

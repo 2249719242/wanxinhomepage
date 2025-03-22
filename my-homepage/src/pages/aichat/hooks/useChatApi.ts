@@ -10,38 +10,78 @@ const useChatApi = () => {
   const backendUrl = BASEURL;
 
   // 发送文本消息到API
-  const sendTextMessageToApi = async (text: string, addMessage: (message: Message) => void) => {
+  const sendTextMessageToApi = async (
+    text: string,
+    addMessage: (message: Message) => void,
+    updateMessageContent?: (id: number, content: string) => void,
+    setMessageStreaming?: (id: number, isStreaming: boolean) => void
+  ) => {
     if (!text.trim()) return;
 
-    // 添加用户消息
     const userMessage: Message = { id: Date.now(), content: text, type: 'text', sender: 'user' };
     addMessage(userMessage);
 
     setIsProcessing(true);
+    setLoading(true);
 
     try {
-      setLoading(true);
-      const response = await axios.post(`${backendUrl}/api/chat`, { message: text });
+      // 检查是否包含"翻唱歌曲"，如果是则使用普通POST请求
+      if (text.includes('翻唱歌曲')) {
+        const response = await axios.post(`${backendUrl}/api/chat`, { message: text });
 
-      // 处理服务器返回的音频文件
-      if (response.data.audioUrl) {
-        const audioResponse = await axios.get(response.data.audioUrl, { responseType: 'blob' });
-        const audioBlob = new Blob([audioResponse.data], { type: 'audio/wav' });
-        const serverMessage: Message = {
-          id: Date.now(),
-          content: new File([audioBlob], 'audio.wav', { type: 'audio/wav' }),
-          type: 'audio',
-          sender: 'server',
-        };
-        addMessage(serverMessage);
+        if (response.data.audioUrl) {
+          const audioResponse = await axios.get(response.data.audioUrl, { responseType: 'blob' });
+          const audioBlob = new Blob([audioResponse.data], { type: 'audio/wav' });
+          const serverMessage: Message = {
+            id: Date.now(),
+            content: new File([audioBlob], 'audio.wav', { type: 'audio/wav' }),
+            type: 'audio',
+            sender: 'server',
+          };
+          addMessage(serverMessage);
+        }
       } else {
+        // 使用流式传输处理文本响应
+        const messageId = Date.now();
         const serverMessage: Message = {
-          id: Date.now(),
-          content: response.data.reply || '服务器无响应',
+          id: messageId,
+          content: '',
           type: 'text',
           sender: 'server',
+          isStreaming: true
         };
         addMessage(serverMessage);
+
+        // 创建 EventSource 连接
+        //不断地更新响应内容
+        const eventSource = new EventSource(`${backendUrl}/api/chat?message=${encodeURIComponent(text)}`);
+        let fullContent = '';
+          
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.status === 'streaming' && data.content && updateMessageContent) {
+              fullContent += data.content;
+              updateMessageContent(messageId, fullContent);
+            } else if (data.status === 'complete' && data.full_content && updateMessageContent && setMessageStreaming) {
+              updateMessageContent(messageId, data.full_content);
+              setMessageStreaming(messageId, false);
+              eventSource.close();
+            }
+          } catch (error) {
+            console.error('Error parsing SSE data:', error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('EventSource error:', error);
+          eventSource.close();
+          if (setMessageStreaming) {
+            setMessageStreaming(messageId, false);
+          }
+          message.error('连接中断');
+        };
       }
     } catch (error) {
       message.error('发送失败');

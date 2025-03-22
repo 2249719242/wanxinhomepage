@@ -11,18 +11,24 @@ import useChatApi from './hooks/useChatApi';
 import useFileUpload from './hooks/useFileUpload';
 
 const ChatPage: React.FC = () => {
-  // 使用自定义钩子管理状态和逻辑
-  const { messages, addMessage } = useMessages();
-  const { loading, isProcessing, sendTextMessageToApi, uploadFileToApi } = useChatApi();
+  const { messages, addMessage, updateMessageContent, 
+    setMessageStreaming } = useMessages();
+  const { loading, isProcessing, sendTextMessageToApi, uploadFileToApi } 
+  = useChatApi();
   const { handleUpload } = useFileUpload(addMessage, uploadFileToApi);
-
-  // 本地状态
+  
+  // 添加 inputText 状态
   const [inputText, setInputText] = useState<string>('');
-
+  
   // 发送文本消息
   const sendTextMessage = async () => {
     if (!inputText.trim()) return;
-    await sendTextMessageToApi(inputText, addMessage);
+    await sendTextMessageToApi(
+      inputText, 
+      addMessage,
+      updateMessageContent,
+      setMessageStreaming
+    );
     setInputText('');
   };
 

@@ -30,7 +30,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     }
     return null;
   };
-
+  
   return (
     <List.Item className={message.sender === 'user' ? 'user-message' : 'server-message'}>
       <div className="message-content">

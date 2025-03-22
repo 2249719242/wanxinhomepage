@@ -3,4 +3,5 @@ export interface Message {
   content: string | File;
   type: 'text' | 'audio' | 'video' | 'zip';
   sender: 'user' | 'server';
+  isStreaming?: boolean;
 }

@@ -20,19 +20,19 @@
 
 .user-message {
   display: flex;
-  background-image: linear-gradient(to bottom, #f9a8d4, #a78bfa, #818cf8);
+  /* background-image: linear-gradient(to bottom, #f9a8d4, #a78bfa, #818cf8); */
   justify-content: flex-end !important;
   margin: 10px 0;
 }
 
 .user-message span {
-  background-color: #1890ff;
-  color: white;
+  /* background-color: #1890ff; */
+  color: hwb(261 7% 9%);
   padding: 10px 15px;
-  border-radius: 15px 15px 0 15px;
+  /* border-radius: 15px 15px 0 15px; */
   max-width: 70%;
   word-wrap: break-word;
-  background-image: linear-gradient(to bottom, #f9a8d4, #a78bfa, #818cf8);
+  /* background-image: linear-gradient(to bottom, #f9a8d4, #a78bfa, #818cf8); */
 
 }
 
@@ -43,12 +43,13 @@
 }
 
 .server-message span {
-  background-color: white;
+  /* background-color: white; */
   padding: 10px 15px;
-  border-radius: 15px 15px 15px 0;
+  color: #0b4cda;
+  /* border-radius: 15px 15px 15px 0; */
   max-width: 70%;
   word-wrap: break-word;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
 }
 
 .input-area {
@@ -99,7 +100,7 @@
 }
 
 .user-message .message-bubble {
-  background-color: #1890ff;
+  /* background-color: #1890ff; */
   color: white;
 }
 
