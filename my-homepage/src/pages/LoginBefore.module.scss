@@ -1,0 +1,22 @@
+// 因为 flex-direction 设置为 column ，所以主轴是垂直方向
+.container {
+  height: calc(100vh);
+  display: flex;
+  flex-direction: column;
+  justify-content: center; //这个属性会让所有子元素在垂直方向上居中排列
+  align-items: center; //这个属性会让所有子元素在水平方向上居中对齐
+  background-image: linear-gradient(-20deg, #ddd6f3 0%, #faaca8 100%, #faaca8 100%);
+
+  .info {
+    text-align: center;
+
+    button {
+      height: 60px;
+      font-size: 24px;
+
+    }
+
+    ;
+  }
+
+}
