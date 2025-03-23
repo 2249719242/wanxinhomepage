@@ -15,14 +15,20 @@ client = anthropic.Anthropic(
 conversation_history = {}
 @app.route('/api/chat', methods=['POST', 'GET'])
 async def chat():
-    # 根据请求方法获取消息内容
+    # 根据请求方法获取消息内容和会话ID
     if request.method == 'POST':
         ctx = request.json
         receive_text = ctx.get('message', '')
+        session_id = ctx.get('session_id', str(hash(request.remote_addr + str(request.user_agent))))
     else:  # GET方法
         print('GET')
         receive_text = request.args.get('message', '')
-    print(receive_text)
+        session_id = request.args.get('session_id', str(hash(request.remote_addr + str(request.user_agent))))
+    print(f"Session ID: {session_id}, Message: {receive_text}")
+    
+    # 确保会话历史存在
+    if session_id not in conversation_history:
+        conversation_history[session_id] = []
     
     # 检查是否包含"翻唱歌曲"
     if '翻唱歌曲' in receive_text:
@@ -32,7 +38,8 @@ async def chat():
         # 调用 Sovits_Music 的方法
         output_path = await sovits.process_message(song_name)
         # 在返回音频前，将当前消息添加到历史记录中
-        # 注意：这里不需要显式更新历史记录，因为前端会在下一次请求时发送完整历史
+        conversation_history[session_id].append({"role": "user", "content": receive_text})
+        conversation_history[session_id].append({"role": "assistant", "content": f"[生成了翻唱音频{song_name}]"})
         return sovits.sendwav(output_path)
     else:
         print('流式')
@@ -42,11 +49,18 @@ async def chat():
                 # 初始化响应头
                 yield 'data: {"status": "start"}\n\n'
                 
+                # 将用户消息添加到历史记录
+                conversation_history[session_id].append({"role": "user", "content": receive_text})
+                
+                # 准备发送给Claude的消息列表，包含历史记录
+                # 限制历史消息数量，避免超出API限制
+                messages_to_send = conversation_history[session_id][-10:] if len(conversation_history[session_id]) > 10 else conversation_history[session_id]
+                
                 # 创建流式消息
                 with client.messages.stream(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=1024,
-                    messages=[{"role": "user", "content": receive_text}]
+                    messages=messages_to_send
                 ) as stream:
                     # 收集完整响应
                     full_response = ""
@@ -57,8 +71,11 @@ async def chat():
                         # 发送当前块
                         yield f'data: {{"status": "streaming", "content": {json.dumps(text)}}}\n\n'
                     
+                    # 将AI回复添加到历史记录
+                    conversation_history[session_id].append({"role": "assistant", "content": full_response})
                     # 发送完成信号
-                    yield f'data: {{"status": "complete", "full_content": {json.dumps(full_response)}}}\n\n'
+                    yield f'data: {{"status": "complete", "full_content": {json.dumps(full_response)}, "session_id": {json.dumps(session_id)}}}\n\n'
+                    # yield f'data: {{"status": "complete", "full_content": {json.dumps(full_response)}}}\n\n'
             except Exception as e:
                 # 其他未预期的错误
                 error_message = f"处理请求时发生错误: {str(e)}"

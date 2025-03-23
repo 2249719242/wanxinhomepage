@@ -20,7 +20,7 @@ export const webLinks = [
   { title: '起始页', icon: <LinkOutlined />, url: 'https://www.baidu.com' },
   { title: '网址集', icon: <AppstoreOutlined />, url: 'https://hao.360.com' },
   { title: '今日热榜', icon: <FireOutlined />, url: 'https://tophub.today' },
-  { title: 'AI Summary', icon: <TwitchOutlined />, url: '/ChatPage', isInternal: true }  // 添加 isInternal 标记
+  { title: 'AI 助手', icon: <TwitchOutlined />, url: '/ChatPage', isInternal: true }  // 添加 isInternal 标记
 ];
 
 // 社交图标导航
@@ -33,5 +33,6 @@ export const socialIcons = [
 ];
 
 
-export const BASEURL = 'http://localhost:5000/'
+// export const BASEURL = 'https://marmoset-frank-quickly.ngrok-free.app/'
+export const BASEURL = 'http://starmemory111.top:8080/'
 export const MAPURL = 'c0bdd96f4ed61b512e0b1dd4eee684e3'

@@ -15,11 +15,18 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import base64  # 添加 base64 模块导入
-
-
+import flask
+import json
+import openai
 app = Flask(__name__)
-CORS(app)  # 允许跨域
+app.config["DEBUG"] = True
 
+# 初始化OpenAI客户端
+client = openai.OpenAI(
+    api_key="sk-tLcSzjc5fMIB3so0E68436C7BdFe4062998e0f1f78Eb15B4",
+    base_url="https://api.vveai.com/v1/"
+)
+CORS(app)  # 允许跨域
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -41,7 +48,7 @@ class Sovits_Music():
     async def process_message(self,receive_text):
         # 处理输入格式，支持空格或'-'分隔
         f0up = 0 
-        model_name = 'jelee' # 提取第三个方括号内的内容
+        model_name = 'fulilian' # 提取第三个方括号内的内容
         print('receive_text',receive_text)
         print('开始翻唱.')
         if receive_text:     
@@ -447,18 +454,74 @@ class Sovits_Music():
     # 插件卸载时触发
     def __del__(self):
         pass
-@app.route('/api/chat', methods=['POST'])
+# 用于存储对话历史的字典，键为会话ID，值为消息列表
+conversation_history = {}
+aimodel='claude-3-5-sonnet-20241022'
+@app.route('/api/chat', methods=['POST', 'GET'])
 async def chat():
-    ctx = request.json
-    receive_text = ctx.get('message', '')
-    print(receive_text)
-    sovits = Sovits_Music()
-    print('00111')
-    # 调用 Sovits_Music 的方法
-    output_path= await sovits.process_message(receive_text)
-    return  sovits.sendwav(output_path)
+    # 根据请求方法获取消息内容和会话ID
+    if request.method == 'POST':
+        ctx = request.json
+        receive_text = ctx.get('message', '')
+        session_id = ctx.get('session_id', str(hash(request.remote_addr + str(request.user_agent))))
+    else:  # GET方法
+        print('GET')
+        receive_text = request.args.get('message', '')
+        session_id = request.args.get('session_id', str(hash(request.remote_addr + str(request.user_agent))))
+    print(f"Session ID: {session_id}, Message: {receive_text}")
+    
+    # 确保会话历史存在
+    if session_id not in conversation_history:
+        conversation_history[session_id] = []
+    
+    # 检查是否包含"翻唱歌曲"
+    if '翻唱歌曲' in receive_text:
+        sovits = Sovits_Music()
+        # 提取歌曲名称（去掉"翻唱歌曲"这四个字）
+        song_name = receive_text.replace('翻唱歌曲', '').strip()
+        # 调用 Sovits_Music 的方法
+        output_path = await sovits.process_message(song_name)
+        # 在返回音频前，将当前消息添加到历史记录中
+        conversation_history[session_id].append({"role": "user", "content": receive_text})
+        conversation_history[session_id].append({"role": "assistant", "content": f"[生成了翻唱音频{song_name}]"})
+        return sovits.sendwav(output_path)
+    else:
+        print('流式')
+        def generate():
+            try:
+                yield 'data: {"status": "start"}\n\n'
+                
+                conversation_history[session_id].append({"role": "user", "content": receive_text})
+                messages_to_send = conversation_history[session_id][-10:] if len(conversation_history[session_id]) > 10 else conversation_history[session_id]
+                
+                # 使用 OpenAI 的流式响应
+                stream = client.chat.completions.create(
+                    model=aimodel,
+                    messages=messages_to_send,
+                    stream=True
+                )
+                
+                full_response = ""
+                for chunk in stream:
+                    if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
+                        content = chunk.choices[0].delta.content
+                        full_response += content
+                        yield f'data: {{"status": "streaming", "content": {json.dumps(content)}}}\n\n'
+                
+                conversation_history[session_id].append({"role": "assistant", "content": full_response})
+                yield f'data: {{"status": "complete", "full_content": {json.dumps(full_response)}, "session_id": {json.dumps(session_id)}}}\n\n'
+                
+            except Exception as e:
+                error_message = f"处理请求时发生错误: {str(e)}"
+                yield f'data: {{"status": "error", "error": {json.dumps(error_message)}}}\n\n'
+        try:
+            return flask.Response(generate(), mimetype='text/event-stream')
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'reply': f'无法创建对话: {str(e)}'
+            })
 if __name__ == '__main__':
-
     config = Config()
     config.bind = ["0.0.0.0:5000"]
     asyncio.run(serve(app, config))

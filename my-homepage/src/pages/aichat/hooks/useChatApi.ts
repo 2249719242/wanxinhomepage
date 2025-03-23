@@ -7,6 +7,11 @@ import { BASEURL } from '../../../constant/Constant';
 const useChatApi = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [sessionId, setSessionId] = useState<string>(() => {
+    // 尝试从localStorage获取会话ID，如果没有则创建新的
+    const savedSessionId = localStorage.getItem('chat_session_id');
+    return savedSessionId || `session_${Date.now()}`;
+  });
   const backendUrl = BASEURL;
 
   // 发送文本消息到API
@@ -27,7 +32,7 @@ const useChatApi = () => {
     try {
       // 检查是否包含"翻唱歌曲"，如果是则使用普通POST请求
       if (text.includes('翻唱歌曲')) {
-        const response = await axios.post(`${backendUrl}/api/chat`, { message: text });
+        const response = await axios.post(`${backendUrl}/api/chat`, { message: text, session_id: sessionId });
 
         if (response.data.audioUrl) {
           const audioResponse = await axios.get(response.data.audioUrl, { responseType: 'blob' });
@@ -54,9 +59,9 @@ const useChatApi = () => {
 
         // 创建 EventSource 连接
         //不断地更新响应内容
-        const eventSource = new EventSource(`${backendUrl}/api/chat?message=${encodeURIComponent(text)}`);
+        const eventSource = new EventSource(`${backendUrl}/api/chat?message=${encodeURIComponent(text)}&session_id=${sessionId}`);
         let fullContent = '';
-          
+
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
@@ -68,6 +73,12 @@ const useChatApi = () => {
               updateMessageContent(messageId, data.full_content);
               setMessageStreaming(messageId, false);
               eventSource.close();
+
+              // 如果响应中包含会话ID，则保存它
+              if (data.session_id) {
+                setSessionId(data.session_id);
+                localStorage.setItem('chat_session_id', data.session_id);
+              }
             }
           } catch (error) {
             console.error('Error parsing SSE data:', error);
@@ -120,6 +131,7 @@ const useChatApi = () => {
   return {
     loading,
     isProcessing,
+    sessionId,
     sendTextMessageToApi,
     uploadFileToApi
   };
