@@ -279,7 +279,7 @@ class Sovits_Music():
             # 3、去混响
             # UVR-De-Echo-Normal.pth 少量混响
             # UVR-De-Echo-Aggressive.pth 中等混响
-            # UVR-DeEcho-DeReverb.pth  大量混响/正常混响
+            #   .pth  大量混响/正常混响
             # separator.output_single_stem = "Vocals"
             separator.load_model("UVR-DeEcho-DeReverb.pth")
             # Perform the separation on specific audio files without reloading the model
@@ -304,7 +304,9 @@ class Sovits_Music():
             elif any(keyword in model_name for keyword in ['luge']):
                 speaker = 'luge'
             elif any(keyword in model_name for keyword in ['坂柳', 'banliu']):
-                speaker = 'banliu'    
+                speaker = 'banliu'
+            elif any(keyword in model_name for keyword in ['fulilian ', '芙莉莲']):
+                speaker = 'fulilian'   
             else:
                 speaker = 'liyi'
             url = "http://localhost:1145/wav2wav"
